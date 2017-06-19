@@ -5,7 +5,7 @@
 class Connect
 {
 
-  private static $dsn = "mysql:host=localhost;dbname=user";
+  private static $dsn = "mysql:host=localhost;dbname=portfolio";
   private static $username = "root";
   private static $password = "";
   private static $db;
