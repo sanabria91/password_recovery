@@ -10,34 +10,40 @@ $passwordCtrl = new PasswordDAO($db);
 $uemail = $_GET['email'];
 $token = $_GET['token'];
 
-$userID = $passwordCtrl->UserID($uemail); 
+$accountId = $passwordCtrl->UserID($uemail); 
+var_dump($accountId);
 
+$verifytoken = $passwordCtrl->verifytoken($uemail, $token);
 
-$verifytoken = $passwordCtrl->verifytoken($userID, $token);
-
-
-
+var_dump($verifytoken);
 
 if(isset($_POST['submit']))
 {
 	$new_password = $_POST['new_password'];
-	$new_password = md5($new_password);
 	$retype_password = $_POST['retype_password'];
-	$retype_password = md5($retype_password);
 	
 	if($new_password == $retype_password)
 	{
-		$update_password = mysqli_query($db, "UPDATE users SET password = '$new_password' WHERE uid = $userID");
-		if($update_password)
+		$update_password = $passwordCtrl->updatePassword($new_password,$accountId);
+		var_dump($update_password);
+		if($update_password === true)
 		{
-				mysqli_query($db, "UPDATE recovery_keys SET valid = 0 WHERE userID = $userID AND token ='$token'");
-				$msg = 'Your password has changed successfully. Please login with your new passowrd.';
-				$msgclass = 'bg-success';
+				$destoryToken = $passwordCtrl->updateToken();
+
+				if($destoryToken == true){
+					$msg = 'Your password has changed successfully. Please login with your new passowrd.';
+					$msgclass = 'bg-success';
+				}else{
+					$msg = "Update was unsuccessful";
+					$msgclass = "bg-danger";
+					return false;
+				}
 		}
 	}else
 	{
 		 $msg = "Password doesn't match";
 		 $msgclass = 'bg-danger';
+		 return false;
 	}
 	
 }
@@ -61,7 +67,7 @@ if(isset($_POST['submit']))
 <div class="container">
 	<div class="row">
    
-	<?php if($verifytoken == 1) { ?>
+	<?php if($verifytoken == 'true') { ?>
     	<div class="col-lg-4 col-lg-offset-4">
         
 

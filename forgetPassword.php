@@ -10,15 +10,14 @@ $passwordCtrl = new PasswordDAO($db);
 		$uemail = $_POST['uemail'];
 
 		if($passwordCtrl->checkUser($uemail)=="true"){
-			$userId = $passwordCtrl->UserID($uemail);
+			$accountId = $passwordCtrl->UserID($uemail);
 			$token = $passwordCtrl->generateRandomString();
 
-			$query = $passwordCtrl->tokenInsert($userId,$token);
+			$query = $passwordCtrl->tokenInsert($accountId,$token);
 
 			if($query){
-				$send_mail = $passwordCtrl->send_mail($uemail, $token);
-				var_dump($send_mail);
-				if($send_mail == 'success'){
+				$mailReset = $passwordCtrl->mailReset($uemail, $token);
+				if($mailReset == 'true'){
 					$msg = 'A mail with recovery instruction has sent to your email';
 					$msgclass = 'bg-success';
 				}else{

@@ -23,19 +23,19 @@ class PasswordDAO
 	}
 
 	public function UserID($email){
-		$query = "SELECT id FROM students WHERE Contactemail = :email";
+		$query = "SELECT Accountid FROM students WHERE Contactemail = :email";
 		$pdostmt = $this->_db->prepare($query);
 		$pdostmt->bindValue(':email',$email);
 		$pdostmt->execute();
 
 		$row = $pdostmt->fetch();
-		return $row['id'];
+		return $row['Accountid'];
 	}
 
-	public function tokenInsert($userId,$token){
-		$query = "INSERT INTO recovery_keys(userID, token) VALUES(:userId, :token)";
+	public function tokenInsert($accountId,$token){
+		$query = "UPDATE accounts SET Token = :token WHERE Id = :accountId";
 		$pdostmt = $this->_db->prepare($query);
-		$pdostmt->bindValue(':userId',$userId);
+		$pdostmt->bindValue(':accountId',$accountId);
 		$pdostmt->bindValue(':token', $token);
 		$pdostmt->execute();
 
@@ -48,76 +48,109 @@ class PasswordDAO
 		$characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
  		$charactersLength = strlen($characters);
         $randomString = '';
-        
+
 		for ($i = 0; $i < $length; $i++){
  			$randomString .= $characters[rand(0, $charactersLength - 1)];
-		}	
-    	return md5($randomString);		
+		}
+    	return md5($randomString);
 	}
 
-	public function send_mail($to, $token){
+	public function mailReset($to, $token){
 
-		require 'PHPMailer/PHPMailerAutoload.php';
-		$mail = new PHPMailer;
+		$subject = "Password Reset on Humber Portfolio";
 
-		$mail->isSMTP();
-		$mail->SMTPDebug = 2;
-		$mail->Debugoutput = 'html';
-		$mail->Host = 'smtp.gmail.com';
-        $mail->SMTPAuth = true;
- 		$mail->SMTPSecure = 'ssl';
- 		$mail->Port = 465;	
+		// $uri = 'http://'.$_SERVER['HTTP_HOST'];
+		$message = '<html>
+					<head>
+					<title>Password Reset for HumberPortfolio.com</title>
+					</head>
+					<body>
+						<p>Click on the given link to reset your password <a href="locahost/passwordrecovery/forgot.php?email='.$to.'&token='.$token.'</a></p>
+					</body>
+					</html>';
 
-		$mail->smtpConnect(
-		array(
-			"ssl" => array(
-				"verify_peer" => false,
-				"verify_peer_name" => false,
-				"allow_self_signed" => true
-				)
-			)
-		);
+		$headers = "MIME-Version: 1.0"."\r\n";
+		$headers .= "Content-type:text/html;charset=iso-8859-1"."\r\n";
+		$headers .= 'From: Admin<admin@humberportfolio.com>'."\r\n";
 
-		$mail->Username = "humberportfolio@gmail.com";
-		$mail->Password = "humber123";
-
-		$mail->From = 'humberportfolio@gmail.com';
-		$mail->FromName = 'Humber Portfolsio';
-		$mail->addAddress($to);	
-
-		$mail->isHTML(true);
-
-		$mail->Subject = 'Demo: Password Recovery Instruction';
-		$link = 'localhost/passwordrecovery/forget.php?email='.$to.'&token='.$token;
-		$mail->Body = "<b>Hello</b><br><br>You have requested for your password recovery. <a href='$link' target='_blank'>Click here</a> to reset your password. If you are unable to click the link then copy the below link and paste in your browser to reset your password.<br><i>". $link."</i>";
- 
- 		$mail->AltBody = 'This is the body in plain text for non-HTML mail clients';
-
-		if(!$mail->send()) {
-            return 'fail';
-		} else {
- 			return 'success';
+		mail($to,$subject,$message,$headers);
+		
+		if(mail == true){
+			return 'true';
 		}
 
 	}
 
-	public function verifytoken($userID, $token){
-		$query = "SELECT valid FROM recovery_keys WHERE userID = :userID AND token = :token";
+		// require 'PHPMailer/PHPMailerAutoload.php';
+		// $mail = new PHPMailer;
+
+		// $mail->isSMTP();
+		// $mail->SMTPDebug = 2;
+		// $mail->Debugoutput = 'html';
+		// $mail->Host = 'smtp.gmail.com';
+        // $mail->SMTPAuth = true;
+ 		// $mail->SMTPSecure = 'ssl';
+ 		// $mail->Port = 465;
+
+		// $mail->smtpConnect(
+		// array(
+		// 	"ssl" => array(
+		// 		"verify_peer" => false,
+		// 		"verify_peer_name" => false,
+		// 		"allow_self_signed" => true
+		// 		)
+		// 	)
+		// );
+
+		// $mail->Username = "humberportfolio@gmail.com";
+		// $mail->Password = "humber123";
+
+		// $mail->From = 'humberportfolio@gmail.com';
+		// $mail->FromName = 'Humber Portfolsio';
+		// $mail->addAddress($to);
+
+		// $mail->isHTML(true);
+
+		// $mail->Subject = 'Demo: Password Recovery Instruction';
+		// $link = 'localhost/passwordrecovery/forget.php?email='.$to.'&token='.$token;
+		// $mail->Body = "<b>Hello</b><br><br>You have requested for your password recovery. <a href='$link' target='_blank'>Click here</a> to reset your password. If you are unable to click the link then copy the below link and paste in your browser to reset your password.<br><i>". $link."</i>";
+
+ 		// $mail->AltBody = 'This is the body in plain text for non-HTML mail clients';
+
+
+	public function verifytoken($email, $token){
+		$query = "SELECT * FROM accounts WHERE Email = :email AND token = :token";
 		$pdostmt = $this->_db->prepare($query);
-		$pdostmt->bindValue(':userID',$userID);
+		$pdostmt->bindValue(':email',$email);
 		$pdostmt->bindValue(':token',$token);
 		$pdostmt->execute();
-		$row = $pdostmt->fetch();
-
-		if($row['valid'] == 1){
-		 	return 1;
-		 }else{
-		 	return 0;
-		 }
-
+		$num_of_rows = $pdostmt->fetchColumn();
+		
+		if($num_of_rows > 0){
+			return 'true';
+		}else{
+			return 'false';
+		}
 	}
 
-	// public function updatePassword()
-			
+	public function updatePassword($newPass, $accountId){
+		$query = "UPDATE accounts SET PasswordSalt = :newPass WHERE Id = :accountId";
+		$pdostmt = $this->_db->prepare($query);
+		$pdostmt->bindValue(':newPass',$newPass);
+		$pdostmt->bindValue(':accountId', $accountId);
+		$pdostmt->execute();
+
+		return true;
+				
+	}
+
+	public function updateToken(){
+		$query = "UPDATE accounts SET Token = ''";
+		$pdostmt = $this->_db->prepare($query);
+		$pdostmt->execute();
+
+		return true;
+	}
+
 }
 
